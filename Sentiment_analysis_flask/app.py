@@ -1,104 +1,141 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, session, redirect,url_for
 import joblib
 import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import numpy as np # Cần numpy
+import numpy as np
+import os 
 
 # --- Khởi tạo ứng dụng Flask ---
 app = Flask(__name__)
 
-# --- Tải mô hình và vectorizer đã lưu ---
-try:
-    # Đảm bảo tên file khớp với file bạn đã lưu
-    model = joblib.load('sentiment_logreg_model.joblib')
-    vectorizer = joblib.load('tfidf_vectorizer.joblib')
-    print("Tải mô hình và vectorizer thành công!")
-except FileNotFoundError:
-    print("Lỗi: Không tìm thấy file model hoặc vectorizer. Hãy đảm bảo chúng ở cùng thư mục với app.py")
-    model = None
-    vectorizer = None
-except Exception as e:
-    print(f"Lỗi khi tải model/vectorizer: {e}")
-    model = None
-    vectorizer = None
+app.secret_key = os.urandom(24)
+print("--- Khởi tạo ứng dụng Flask ---") # Print 1
+
+# --- Lấy đường dẫn thư mục ---
+basedir = os.path.abspath(os.path.dirname(__file__))
+print(f"Thư mục cơ sở (basedir): {basedir}") # Print 2
 
 # --- Tải tài nguyên NLTK ---
+print("--- Bắt đầu tải NLTK ---") # Print 3
+print("NLTK data path:", nltk.data.path) # Print 4
 try:
     stop_words = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
-except LookupError:
-    print("Lỗi: Chưa tải dữ liệu NLTK (stopwords, wordnet).")
+    print("Tải stopwords và lemmatizer thành công!") # Print 5
+except LookupError as e:
+    print(f"Lỗi LookupError khi tải NLTK: {e}") # Print 6 - Lỗi cụ thể
+    print("Hãy chạy lại nltk.download trong console.")
+    stop_words = set()
+    lemmatizer = None
+except Exception as e:
+    print(f"Lỗi không xác định khi tải NLTK: {e}") # Print 7 - Lỗi khác
     stop_words = set()
     lemmatizer = None
 
-# --- Hàm tiền xử lý văn bản (Phải giống hệt hàm đã dùng khi huấn luyện) ---
+
+# --- Hàm tiền xử lý văn bản  ---
 def preprocess_text(text):
     if lemmatizer is None:
         print("Cảnh báo: Lemmatizer chưa được tải.")
-        # Xử lý nếu không có lemmatizer
-        return text # Hoặc trả về lỗi
+       
+        return text # Trả về text gốc nếu không có lemmatizer
 
-    text = text.lower()
-    text = re.sub(r'<[^>]*>', '', text)
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    tokens = text.split()
+    text = text.lower() # Chuyển về chữ thường
+    text = re.sub(r'<[^>]*>', '', text) # Loại bỏ HTML tags
+    text = re.sub(r'[^a-zA-Z\s]', '', text) # Loại bỏ ký tự đặc biệt
+    tokens = text.split() # Tách từ
+    # Lemmatization và loại bỏ stopword
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
-    return " ".join(tokens)
+    return " ".join(tokens) # Ghép lại thành chuỗi
+
+
+# --- Tải mô hình và vectorizer đã lưu ---
+print("--- Bắt đầu tải Model và Vectorizer ---") # Print 8
+model = None # Khởi tạo là None
+vectorizer = None # Khởi tạo là None
+model_path = os.path.join(basedir, 'sentiment_logreg_model.joblib')
+vectorizer_path = os.path.join(basedir, 'tfidf_vectorizer.joblib')
+print(f"Đường dẫn model dự kiến: {model_path}") # Print 9
+print(f"Đường dẫn vectorizer dự kiến: {vectorizer_path}") # Print 10
+
+try:
+    print("Đang thử tải model...") # Print 11
+    model = joblib.load(model_path)
+    print("Tải model thành công!") # Print 12
+    print("Đang thử tải vectorizer...") # Print 13
+    vectorizer = joblib.load(vectorizer_path)
+    print("Tải vectorizer thành công!") # Print 14
+except FileNotFoundError:
+    print(f"Lỗi FileNotFoundError: Không tìm thấy file model hoặc vectorizer.") # Print 15
+    print(f"Đã kiểm tra: {model_path} và {vectorizer_path}")
+    # model và vectorizer vẫn là None
+except Exception as e:
+    print(f"Lỗi không xác định khi tải model/vectorizer: {e}") # Print 16 - Lỗi khác
+    # model và vectorizer vẫn là None
+
+print("--- Hoàn tất tải tài nguyên ---") # Print 17
+print(f"Trạng thái model: {'Đã tải' if model is not None else 'Chưa tải (None)'}") # Print 18
+print(f"Trạng thái vectorizer: {'Đã tải' if vectorizer is not None else 'Chưa tải (None)'}") # Print 19
+print(f"Trạng thái lemmatizer: {'Đã tải' if lemmatizer is not None else 'Chưa tải (None)'}") # Print 20
 
 # --- Route cho trang chủ ---
 @app.route('/')
 def home():
-    return render_template('index.html')
+    print("Truy cập trang chủ ('/')") # Print 21
+    prediction_text = session.pop('prediction_text', None) # Lấy và xóa khỏi session
+    original_review = session.pop('original_review', None)
+    is_error = session.pop('is_error', False)
+    print("Truy cập trang chủ ('/')")
+    return render_template('index.html',
+                           prediction_text=prediction_text,
+                           original_review=original_review,
+                           error=is_error)
 
 # --- Route xử lý dự đoán ---
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Kiểm tra xem model và vectorizer đã được tải thành công chưa
+    print("Nhận yêu cầu dự đoán ('/predict') [POST]")
     if model is None or vectorizer is None or lemmatizer is None:
-        return render_template('index.html', prediction_text='Lỗi: Hệ thống chưa sẵn sàng để dự đoán.', error=True)
+         print("Lỗi trong /predict: Model, Vectorizer hoặc Lemmatizer là None.")
+         session['prediction_text'] = 'Lỗi: Hệ thống chưa sẵn sàng để dự đoán.'
+         session['is_error'] = True
+         return redirect(url_for('home'))
 
     if request.method == 'POST':
         review_text = request.form['review']
+        print(f"Nhận được đánh giá: '{review_text[:50]}...'")
 
         if not review_text.strip():
-             return render_template('index.html', prediction_text='Vui lòng nhập đánh giá phim.', error=True, original_review=review_text)
+             print("Lỗi trong /predict: Đánh giá rỗng.")
+             session['prediction_text'] = 'Vui lòng nhập đánh giá phim.'
+             session['original_review'] = review_text # Vẫn lưu lại để hiển thị
+             session['is_error'] = True
+             return redirect(url_for('home'))
 
-        # 1. Tiền xử lý
-        processed_text = preprocess_text(review_text)
-
-        # 2. Vector hóa (Dùng transform, không fit_transform)
         try:
-            # Quan trọng: Vectorizer mong đợi một list/iterable chứa các documents
-            vectorized_text = vectorizer.transform([processed_text]) # Truyền vào list chứa 1 document
-        except Exception as e:
-             print(f"Lỗi khi vector hóa: {e}")
-             return render_template('index.html', prediction_text='Lỗi xử lý văn bản.', error=True, original_review=review_text)
-
-        # 3. Dự đoán
-        try:
+            processed_text = preprocess_text(review_text)
+            vectorized_text = vectorizer.transform([processed_text])
             prediction = model.predict(vectorized_text)
-            # predict_proba để lấy xác suất (nếu muốn hiển thị độ tin cậy)
-            # probability = model.predict_proba(vectorized_text)
-
             sentiment = "Tích cực 😊" if prediction[0] == 1 else "Tiêu cực 😞"
+            print(f"Kết quả dự đoán: {prediction[0]} ({sentiment})")
 
-            # Lấy xác suất của lớp dự đoán (ví dụ)
-            # predicted_proba = probability[0][prediction[0]] * 100 # Lấy xác suất của lớp được dự đoán
+            # Lưu kết quả và đánh giá gốc vào session
+            session['prediction_text'] = f'Dự đoán cảm xúc: {sentiment}'
+            session['original_review'] = review_text
+            session['is_error'] = False # Không có lỗi
 
-            return render_template('index.html',
-                                   prediction_text=f'Dự đoán cảm xúc: {sentiment}',
-                                   # prediction_confidence=f'Độ tin cậy: {predicted_proba:.2f}%', # (Tùy chọn)
-                                   original_review=review_text)
         except Exception as e:
-             print(f"Lỗi khi dự đoán: {e}")
-             return render_template('index.html', prediction_text='Lỗi dự đoán.', error=True, original_review=review_text)
+             print(f"Lỗi trong /predict khi xử lý/dự đoán: {e}")
+             session['prediction_text'] = 'Lỗi trong quá trình xử lý hoặc dự đoán.'
+             session['original_review'] = review_text
+             session['is_error'] = True
 
-    return render_template('index.html')
+        # Luôn chuyển hướng về trang chủ sau khi xử lý POST
+        return redirect(url_for('home'))
 
 # --- Chạy ứng dụng ---
 if __name__ == "__main__":
-    # Tắt debug khi không cần thiết nữa
-    app.run(debug=False, host='0.0.0.0') # host='0.0.0.0' để có thể truy cập từ máy khác trong cùng mạng
-    # Hoặc chỉ cần app.run() nếu chạy trên máy cục bộ
+    pass
+    print("app.py được chạy trực tiếp (không phải qua WSGI)")

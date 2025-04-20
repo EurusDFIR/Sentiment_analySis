@@ -2,71 +2,391 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Phân loại Cảm xúc</title>
-    <!-- Link CSS Bootstrap từ CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phân loại Cảm xúc Đánh giá Phim</title>
+    <!-- Tailwind CSS from jsdelivr -->
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- AOS Animation Library -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css"
       rel="stylesheet"
     />
     <style>
-      /* Bạn vẫn có thể thêm CSS tùy chỉnh của mình ở đây */
+      :root {
+        --primary-color: #6366f1;
+        --secondary-color: #4f46e5;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --background-color: #f9fafb;
+        --card-color: #ffffff;
+        --text-color: #1f2937;
+        --light-text: #6b7280;
+      }
+
       body {
-        padding-top: 40px;
-        padding-bottom: 40px;
-        background-color: #f5f5f5;
+        font-family: "Montserrat", sans-serif;
+        background-color: var(--background-color);
+        background-image: radial-gradient(
+            circle at 10% 20%,
+            rgba(99, 102, 241, 0.05) 0%,
+            transparent 20%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(99, 102, 241, 0.05) 0%,
+            transparent 20%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(99, 102, 241, 0.03) 0%,
+            transparent 100%
+          );
+        min-height: 100vh;
+        color: var(--text-color);
       }
-      .form-sentiment {
-        max-width: 500px;
-        padding: 15px;
-        margin: auto;
+
+      .card {
+        transition: all 0.3s ease;
       }
-      /* ... các style tùy chỉnh khác ... */
+
+      .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .textarea-container {
+        position: relative;
+      }
+
+      .floating-label {
+        position: absolute;
+        pointer-events: none;
+        left: 1rem;
+        top: 1rem;
+        transition: 0.2s ease all;
+        opacity: 0.7;
+      }
+
+      .custom-textarea:focus ~ .floating-label,
+      .custom-textarea:not(:placeholder-shown) ~ .floating-label {
+        transform: translateY(-1.5rem) scale(0.85);
+        opacity: 1;
+        color: var(--primary-color);
+        background-color: white;
+        padding: 0 0.5rem;
+      }
+
+      .pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .success-alert {
+        background: linear-gradient(135deg, #10b981, #059669);
+      }
+
+      .danger-alert {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+      }
+
+      .warning-alert {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+      }
+
+      .result-container {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.5s ease;
+      }
+
+      .result-container.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .movie-icon-container {
+        position: relative;
+        font-size: 3rem;
+        height: 5rem;
+        width: 5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .movie-icon {
+        animation: rotateIcon 30s linear infinite;
+      }
+
+      @keyframes rotateIcon {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spin-slow {
+        animation: spin 6s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
-  <body>
-    <div class="container">
-      <main class="form-sentiment">
-        <h1 class="h3 mb-3 fw-normal text-center">
+  <body class="py-8 px-4">
+    <div class="max-w-xl mx-auto">
+      <!-- Header with Icon -->
+      <div
+        class="text-center mb-8"
+        data-aos="fade-down"
+        data-aos-duration="1000"
+      >
+        <div
+          class="movie-icon-container bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mx-auto text-white shadow-lg"
+        >
+          <i class="fas fa-film text-4xl"></i>
+          <div
+            class="absolute inset-0 bg-white opacity-10 spin-slow rounded-full"
+          ></div>
+        </div>
+        <h1
+          class="text-3xl font-bold mt-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"
+        >
           Phân loại Cảm xúc Đánh giá Phim
         </h1>
-        <form action="{{ url_for('predict') }}" method="post">
-          <div class="form-floating mb-3">
+        <p class="text-gray-500 mt-2">
+          Hệ thống AI phân tích cảm xúc trong đánh giá của bạn
+        </p>
+      </div>
+
+      <!-- Main Card -->
+      <div
+        class="card bg-white rounded-2xl shadow-xl p-6 mb-8"
+        data-aos="fade-up"
+        data-aos-duration="800"
+      >
+        <!-- Form -->
+        <form
+          action="{{ url_for('predict') }}"
+          method="post"
+          id="sentimentForm"
+        >
+          <div class="textarea-container mb-6 relative">
             <textarea
-              class="form-control"
-              placeholder="Nhập đánh giá..."
+              class="custom-textarea w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition duration-300 resize-none h-40 outline-none placeholder-transparent"
               id="reviewTextarea"
               name="review"
-              style="height: 150px"
+              placeholder=" "
               required
             >
 {{ original_review or '' }}</textarea
             >
-            <label for="reviewTextarea">Nhập đánh giá phim của bạn</label>
+            <label for="reviewTextarea" class="floating-label text-gray-500"
+              >Nhập đánh giá phim của bạn...</label
+            >
+            <div class="absolute right-3 bottom-3 text-gray-400">
+              <i class="fas fa-quote-right"></i>
+            </div>
           </div>
-          <button class="w-100 btn btn-lg btn-primary" type="submit">
-            Dự đoán Cảm xúc
+
+          <button
+            type="submit"
+            class="btn-primary w-full py-3 px-6 rounded-xl text-white font-medium flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
+          >
+            <i class="fas fa-magic mr-2"></i>
+            <span>Phân tích cảm xúc</span>
           </button>
         </form>
 
-        {% if prediction_text %}
+        <!-- Tips -->
+        <div class="mt-6 text-sm text-gray-500 flex items-start">
+          <i class="fas fa-lightbulb text-yellow-400 mt-1 mr-2"></i>
+          <p>
+            Để có kết quả chính xác nhất, hãy viết đánh giá chi tiết và thể hiện
+            rõ cảm nhận của bạn về bộ phim.
+          </p>
+        </div>
+      </div>
+
+      <!-- Results Container -->
+      {% if prediction_text %}
+      <div
+        id="resultContainer"
+        class="result-container show rounded-2xl shadow-lg overflow-hidden mb-8"
+        data-aos="fade-up"
+        data-aos-delay="200"
+      >
         <div
-          class="alert {% if 'Tích cực' in prediction_text %} alert-success {% elif 'Tiêu cực' in prediction_text %} alert-danger {% elif error %} alert-warning {% endif %} mt-4 text-center"
-          role="alert"
+          class="p-6 text-white text-center {% if 'Tích cực' in prediction_text %} success-alert {% elif 'Tiêu cực' in prediction_text %} danger-alert {% elif error %} warning-alert {% endif %}"
         >
-          {{ prediction_text }} {% if prediction_confidence %}
-          <div style="font-size: 0.9em; margin-top: 5px">
-            ({{ prediction_confidence }})
+          <div class="flex items-center justify-center mb-2">
+            {% if 'Tích cực' in prediction_text %}
+            <i class="fas fa-smile-beam text-4xl mr-3 pulse"></i>
+            {% elif 'Tiêu cực' in prediction_text %}
+            <i class="fas fa-frown text-4xl mr-3 pulse"></i>
+            {% else %}
+            <i class="fas fa-question-circle text-4xl mr-3 pulse"></i>
+            {% endif %}
+            <h3 class="text-2xl font-bold">{{ prediction_text }}</h3>
+          </div>
+
+          {% if prediction_confidence %}
+          <div class="mt-2 text-white text-opacity-90">
+            Độ tin cậy: {{ prediction_confidence }}
           </div>
           {% endif %}
         </div>
+
         {% if original_review %}
-        <p class="mt-3 text-muted text-center" style="font-size: 0.9em">
-          Đánh giá gốc: "{{ original_review }}"
-        </p>
-        {% endif %} {% endif %}
-      </main>
+        <div class="bg-gray-50 p-4 border-t border-gray-200">
+          <div class="flex items-start">
+            <i class="fas fa-quote-left text-indigo-300 mr-2 mt-1"></i>
+            <p class="text-gray-600 italic text-sm">{{ original_review }}</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Features Section -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div
+          class="bg-white rounded-xl p-4 shadow-md flex flex-col items-center text-center"
+          data-aos="fade-up"
+          data-aos-delay="300"
+        >
+          <div
+            class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3"
+          >
+            <i class="fas fa-bolt text-indigo-500"></i>
+          </div>
+          <h3 class="font-medium text-gray-800">Phân tích nhanh chóng</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Kết quả phân tích cảm xúc trong tích tắc
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-xl p-4 shadow-md flex flex-col items-center text-center"
+          data-aos="fade-up"
+          data-aos-delay="400"
+        >
+          <div
+            class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3"
+          >
+            <i class="fas fa-brain text-indigo-500"></i>
+          </div>
+          <h3 class="font-medium text-gray-800">AI tiên tiến</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Sử dụng mô hình học máy hiện đại
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-xl p-4 shadow-md flex flex-col items-center text-center"
+          data-aos="fade-up"
+          data-aos-delay="500"
+        >
+          <div
+            class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3"
+          >
+            <i class="fas fa-lock text-indigo-500"></i>
+          </div>
+          <h3 class="font-medium text-gray-800">Bảo mật dữ liệu</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Đánh giá của bạn được bảo vệ an toàn
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="text-center text-gray-500 text-sm mt-8">
+        <p>© 2025 Phân tích Cảm xúc Đánh giá Phim by EurusDFIR</p>
+      </footer>
     </div>
-    <!-- Link JS Bootstrap từ CDN (nếu cần các component JS) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AOS Animation Library -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script>
+      // Initialize AOS animation
+      document.addEventListener("DOMContentLoaded", function () {
+        AOS.init({
+          once: true,
+          duration: 800,
+        });
+
+        // Handle textarea focus and label animation
+        const textarea = document.getElementById("reviewTextarea");
+
+        // Show result container with animation
+        const resultContainer = document.getElementById("resultContainer");
+        if (resultContainer) {
+          setTimeout(() => {
+            resultContainer.classList.add("show");
+          }, 300);
+        }
+
+        // Form submission animation
+        const form = document.getElementById("sentimentForm");
+        if (form) {
+          form.addEventListener("submit", function () {
+            const button = this.querySelector('button[type="submit"]');
+            button.innerHTML =
+              '<i class="fas fa-spinner fa-spin mr-2"></i><span>Đang phân tích...</span>';
+            button.disabled = true;
+          });
+        }
+      });
+    </script>
   </body>
 </html>
