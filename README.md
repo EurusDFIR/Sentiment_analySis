@@ -2,7 +2,7 @@
 
 -Direct to This website to Try It!
 
-> [!hint] https://eurusdfir.pythonanywhere.com/
+ https://eurusdfir.pythonanywhere.com/
 
 > UI version 1.0
 
